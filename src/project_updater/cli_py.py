@@ -1,6 +1,6 @@
 import sys
 
-from py_project_dev_tools import log_py as log
+from project_updater import log_py as log
 
 
 def cli_logic(cli_data):
