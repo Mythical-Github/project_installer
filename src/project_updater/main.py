@@ -15,6 +15,12 @@ else:
     SCRIPT_DIR = Path(__file__).resolve().parent
 
 
+def delete_empty_dirs(proj_dir: str):
+    for dirpath, dirnames, filenames in os.walk(proj_dir, topdown=False):
+        if not os.listdir(dirpath):
+            os.rmdir(dirpath)
+
+
 def get_recursive_backup_name(path):
     backup_path = f"{path}.bak"
     if os.path.exists(backup_path):
@@ -74,65 +80,60 @@ def get_files_and_dirs_in_dir_tree(dir_tree: str) -> list:
     return all_files_and_dirs
 
 
+def backup_backups(backup_dir):
+    if os.path.isdir(backup_dir):
+        new_backup_dir = create_recursive_backup(backup_dir)
+        shutil.move(backup_dir, new_backup_dir)
+    os.makedirs(backup_dir)
+
+
 def backup_dir_tree(
         proj_dir: str,
-        backup_dir_tree: bool, 
-        backup_exclusions: list
+        backup_dir_tree: bool = True, 
+        backup_exclusions: list = []
     ):
     if backup_dir_tree:
         backup_dir = f'{proj_dir}/backup'
-        if os.path.isdir(backup_dir):
-            new_backup_dir = create_recursive_backup(backup_dir)
-            shutil.move(backup_dir, new_backup_dir)
-        os.makedirs(backup_dir)
+        backup_backups(backup_dir)
         before_file_set = [os.path.normpath(exclusion) for exclusion in get_files_and_dirs_in_dir_tree(proj_dir)]
-        before_file_set_relative_paths = [os.path.relpath(before_file, proj_dir) for before_file in before_file_set]
-        if not backup_exclusions == None:
-            if len(backup_exclusions) > 0:
-                backup_exclusions = [os.path.normpath(exclusion) for exclusion in backup_exclusions]
-                dir_list = []
-                file_list = []
-                for backup_exclusion in backup_exclusions:
-                    path = f'{proj_dir}/{backup_exclusion}'
-                    if os.path.isfile(path):
-                        file_list.append(backup_exclusion)
-                    if os.path.isdir(path):
-                        dir_list.append(backup_exclusion)
-                temp_copy = before_file_set_relative_paths
-                for item in temp_copy:
-                    for entry in dir_list:
-                        if item.startswith(entry):
-                            before_file_set_relative_paths.remove(item)
-                    for entry in file_list:
-                        if item == entry:
-                            before_file_set_relative_paths.remove(item)
-        for partial_path in before_file_set_relative_paths:
-            full_before_path = f'{proj_dir}/{partial_path}'
-            full_after_path = f'{backup_dir}/{partial_path}'
+        backup_exclusions = [os.path.normpath(exclusion) for exclusion in backup_exclusions]
+        dir_list = []
+        file_list = []
+        for backup_exclusion in backup_exclusions:
+            path = f'{proj_dir}/{backup_exclusion}'
+            if os.path.isfile(path):
+                file_list.append(backup_exclusion)
+            if os.path.isdir(path):
+                dir_list.append(backup_exclusion)
+        path_suffixes = [os.path.relpath(before_file, proj_dir) for before_file in before_file_set]
+        path_suffixes = [
+            item for item in path_suffixes 
+            if not any(item.startswith(entry) for entry in dir_list) 
+            and item not in file_list
+        ]
+
+        for path_suffix in path_suffixes:
+            full_before_path = os.path.join(proj_dir, path_suffix)
+            full_after_path = os.path.join(backup_dir, path_suffix)
+            file_dir = os.path.dirname(full_after_path)
+            print(f'Path Suffix {path_suffix}')
+            print(f'Full Before Path: {full_before_path}')
+            print(f'Full After Path: {full_after_path}')
+
             if os.path.isfile(full_before_path):
-                file_dir = os.path.dirname(full_after_path)
                 os.makedirs(file_dir, exist_ok=True)
                 shutil.move(full_before_path, full_after_path)
-            if os.path.isdir(full_before_path):
+            elif os.path.isdir(full_before_path):
                 os.makedirs(full_after_path, exist_ok=True)
-        all_dirs_and_files_in_project_dir = get_files_and_dirs_in_dir_tree(proj_dir)
-        for entry in all_dirs_and_files_in_project_dir:
-            if os.path.isdir(entry):
-                if not os.listdir(entry):
-                    os.removedirs(entry)
 
 
 def delete_dir_tree(
         proj_dir: str, 
-        delete_dir_tree: bool, 
-        delete_exclusions: list
+        delete_dir_tree: bool = False, 
+        delete_exclusions: list = []
     ):
     if delete_dir_tree:
-        if delete_exclusions is None:
-            delete_exclusions = []
-        
         delete_exclusions.append('backup')
-        
         delete_exclusions = [os.path.normpath(exclusion) for exclusion in delete_exclusions]
         
         proj_dir_files = [os.path.normpath(path) for path in get_files_and_dirs_in_dir_tree(proj_dir)]
@@ -159,8 +160,6 @@ def move_content(
         overwrite_files: bool, 
         overwrite_files_exclusions: list = []
         ):
-        if not overwrite_files_exclusions:
-            overwrite_files_exclusions = []
         overwrite_exclusions = [os.path.normpath(exclusion) for exclusion in overwrite_files_exclusions]
         before_file_set = [os.path.normpath(exclusion) for exclusion in get_files_and_dirs_in_dir_tree(proj_temp_dir)]
         before_file_set_relative_paths = [os.path.relpath(before_file, proj_temp_dir) for before_file in before_file_set]
@@ -198,12 +197,21 @@ def update_project(
 ):
     if backup_directory_tree == None:
         backup_directory_tree = True
+        
+    if backup_exclusions is None:
+        backup_exclusions = []
 
     if delete_directory_tree == None:
         delete_directory_tree = False
 
+    if delete_exclusions is None:
+        delete_exclusions = []
+
     if overwrite_files == None:
         overwrite_files == True
+        
+    if overwrite_exclusions is None:
+        overwrite_exclusions = []
     
     """
     Updates a project by downloading and managing content as specified.
@@ -233,3 +241,4 @@ def update_project(
     unzip_content_zips(proj_temp_dir)
     move_content(proj_temp_dir, proj_dir, overwrite_files, overwrite_exclusions)
     clean_temp_dir(proj_temp_dir)
+    delete_empty_dirs(proj_dir)
