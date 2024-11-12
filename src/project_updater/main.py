@@ -93,14 +93,14 @@ def backup_dir_tree(
         backup_exclusions: list = []
     ):
     if backup_dir_tree:
-        backup_dir = f'{proj_dir}/backup'
+        backup_dir = os.path.join(proj_dir, 'backup')
         backup_backups(backup_dir)
         before_file_set = [os.path.normpath(exclusion) for exclusion in get_files_and_dirs_in_dir_tree(proj_dir)]
         backup_exclusions = [os.path.normpath(exclusion) for exclusion in backup_exclusions]
         dir_list = []
         file_list = []
         for backup_exclusion in backup_exclusions:
-            path = f'{proj_dir}/{backup_exclusion}'
+            path = os.path.join(proj_dir, backup_exclusion)
             if os.path.isfile(path):
                 file_list.append(backup_exclusion)
             if os.path.isdir(path):
@@ -116,9 +116,9 @@ def backup_dir_tree(
             full_before_path = os.path.join(proj_dir, path_suffix)
             full_after_path = os.path.join(backup_dir, path_suffix)
             file_dir = os.path.dirname(full_after_path)
-            print(f'Path Suffix {path_suffix}')
-            print(f'Full Before Path: {full_before_path}')
-            print(f'Full After Path: {full_after_path}')
+            # print(f'Path Suffix {path_suffix}')
+            # print(f'Full Before Path: {full_before_path}')
+            # print(f'Full After Path: {full_after_path}')
 
             if os.path.isfile(full_before_path):
                 os.makedirs(file_dir, exist_ok=True)
@@ -165,8 +165,8 @@ def move_content(
         before_file_set_relative_paths = [os.path.relpath(before_file, proj_temp_dir) for before_file in before_file_set]
 
         for partial_path in before_file_set_relative_paths:
-            full_before_path = f'{proj_temp_dir}/{partial_path}'
-            full_after_path = f'{proj_dir}/{partial_path}'
+            full_before_path = os.path.join(proj_temp_dir, partial_path)
+            full_after_path = os.path.join(proj_dir, partial_path)
             if os.path.isfile(full_before_path):
                 file_dir = os.path.dirname(full_after_path)
                 os.makedirs(file_dir, exist_ok=True)
@@ -231,7 +231,7 @@ def update_project(
     """
 
     proj_dir = project_directory
-    proj_temp_dir = f'{proj_dir}/temp'
+    proj_temp_dir = os.path.join(proj_dir, 'temp')
     os.makedirs(proj_temp_dir, exist_ok=True)
 
     clean_temp_dir(proj_temp_dir)
