@@ -222,7 +222,7 @@ def update_project(
         None
     """
 
-    proj_dir = f'{SCRIPT_DIR}/{project_directory}'
+    proj_dir = project_directory
     proj_temp_dir = f'{proj_dir}/temp'
     os.makedirs(proj_temp_dir, exist_ok=True)
 
