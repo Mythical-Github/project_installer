@@ -2,7 +2,6 @@ import argparse
 
 from project_updater.console import console
 
-
 def cli_logic(cli_data):
     commands_module = cli_data['module']
     cli_info_dict = cli_data['commands']
@@ -14,13 +13,15 @@ def cli_logic(cli_data):
         subcommand_parser = subparsers.add_parser(command, help=f"Execute {command} command")
         arg_help_pairs = command_info.get('arg_help_pairs', [])
         
-        for arg_entry in arg_help_pairs:
-            arg_name, arg_data = list(arg_entry.items())[0]
-            subcommand_parser.add_argument(
-                type=str,
-                help=arg_data["help"],
-                required=arg_data["required"]
-            )
+    for arg_entry in arg_help_pairs:
+        arg_name, arg_data = list(arg_entry.items())[0]
+        subcommand_parser.add_argument(
+            f"--{arg_name}",
+            type=str,
+            help=arg_data["help"],
+            required=arg_data["required"],
+            nargs="+" if arg_data["use_nargs"] == True else None
+        )
 
     args = parser.parse_args()
 

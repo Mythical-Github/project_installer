@@ -163,3 +163,7 @@ cython_debug/
 src/py_project_dev_tools/_version.py
 assets/base/project_updater.exe
 src/project_updater/_version.py
+src/project_updater/_version.py
+assets/base/place_holder.txt
+src/project_updater/_version.py
+requirements.txt

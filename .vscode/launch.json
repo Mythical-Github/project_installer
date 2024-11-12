@@ -1,0 +1,34 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "test_virtual_environment",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "project_updater",
+            "args": [
+            "update_project", 
+            "--project_directory", 
+            "unreal_auto_mod", 
+            "--content_zip_urls", 
+            "https://github.com/Mythical-Github/unreal_auto_mod/releases/download/v1.6.1/unreal_auto_mod.zip",
+            "https://github.com/Mythical-Github/py_project_dev_tools/releases/download/v1.0.0/py_project_dev_tools.zip"
+            // "--backup_directory_tree",
+            // "True",
+            // "--backup_exclusions",
+            // "template/mod_packaging/persistent_files/ModName_P/UprojectName/Config/empty.ini",
+            // "test2",
+            // "--delete_directory_tree",
+            // "True",
+            // "--delete_exclusions",
+            // "test",
+            // "test2",
+            // "--overwrite_files",
+            // "True",
+            // "--overwrite_exclusions",
+            // "test",
+            // "test2"
+            ]
+        }
+    ]
+}

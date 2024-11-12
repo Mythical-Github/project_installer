@@ -1,12 +1,10 @@
 import os
 import sys
 import shutil
-import subprocess
 from pathlib import Path
 from zipfile import ZipFile
 
 import requests
-import pyjson5 as json
 
 from project_updater.console import console
 
@@ -17,19 +15,6 @@ else:
     SCRIPT_DIR = Path(__file__).resolve().parent
 
 
-JSON_PATH = f'{SCRIPT_DIR}/project_updater.json'
-
-
-def run_app(exe_path: str, args: list = [], working_dir: str = None):
-    command = [exe_path] + args
-    console.log(f'Command: {" ".join(command)} is executing')
-    if working_dir:
-        if os.path.isdir(working_dir):
-            os.chdir(working_dir)
-    subprocess.run(command, cwd=working_dir, text=True, shell=False)
-    console.log(f'Command: {" ".join(command)} finished')
-
-
 def get_recursive_backup_name(path):
     backup_path = f"{path}.bak"
     if os.path.exists(backup_path):
@@ -37,132 +22,189 @@ def get_recursive_backup_name(path):
     return backup_path
 
 
-def create_recursive_backup(original_dir):
+def create_recursive_backup(original_dir: str) -> str:
     if os.path.isdir(original_dir):
         backup_path = get_recursive_backup_name(original_dir)
-        shutil.move(original_dir, backup_path)
-        console.log(f"Moved '{original_dir}' to '{backup_path}'")
+        os.makedirs(backup_path)
+    return backup_path
 
 
-def load_settings(json_file_path):
-    with open(json_file_path, 'r') as file:
-        json_data = json.load(file)
-    return json_data
-
-
-def get_project_release_urls(json_file_path):
-    settings = load_settings(json_file_path)
-    return settings.get("Settings", {}).get("project_release_urls", [])
-
-
-def get_exclude_names(json_file_path):
-    settings = load_settings(json_file_path)
-    return settings.get("Settings", {}).get("exclude_names", [])
-
-
-def backup_files():
-    backup_dir = os.path.join(SCRIPT_DIR, "backup")
-    create_recursive_backup(backup_dir)
-        
-    os.makedirs(backup_dir, exist_ok=True)
-
-    all_items = os.listdir(SCRIPT_DIR)
-    
-    exclude_names = get_exclude_names(JSON_PATH)
-
-    items_to_backup = [
-        item for item in all_items if item not in exclude_names
-    ]
-
-    for item in items_to_backup:
-        item_path = os.path.join(SCRIPT_DIR, item)
-        target_path = os.path.join(backup_dir, item)
-        
-        if os.path.isfile(item_path):
-            shutil.move(item_path, target_path)
-        elif os.path.isdir(item_path):
-            if not item_path == backup_dir:
-                shutil.move(item_path, target_path)
-
-    console.log(f"Backup complete. {len(items_to_backup)} items moved to {backup_dir}")
-
-
-def download_file(url, dest_folder=SCRIPT_DIR):
-    local_filename = os.path.join(dest_folder, url.split('/')[-1])
+def download_file(url, dest_dir=SCRIPT_DIR):
+    local_filename = os.path.join(dest_dir, url.split('/')[-1])
     with requests.get(url, stream=True) as r:
         r.raise_for_status()
         with open(local_filename, 'wb') as f:
             for chunk in r.iter_content(chunk_size=8192):
                 f.write(chunk)
-    console.log(f"Downloaded: {local_filename}")
     return local_filename
 
 
 def unzip_release(zip_path, dest_folder=SCRIPT_DIR):
     with ZipFile(zip_path, 'r') as zip_ref:
         zip_ref.extractall(dest_folder)
-    os.remove(zip_path)
-    console.log(f"Extracted and removed: {zip_path}")
 
 
-def update_releases():
-    for release_url in get_project_release_urls(JSON_PATH):
-        zip_path = download_file(release_url)
-        unzip_release(zip_path)
+def clean_temp_dir(temp_dir_path: str):
+    if os.path.isdir(temp_dir_path):
+        shutil.rmtree(temp_dir_path)
 
 
-def cleanup_old_zips(directory=SCRIPT_DIR):
-    for item in os.listdir(directory):
-        if item.endswith('.zip'):
-            os.remove(os.path.join(directory, item))
-            console.log(f"Deleted old zip file: {item}")
+def download_content(proj_temp_dir: str, content_zip_urls: list):
+    os.makedirs(proj_temp_dir)
+    for content_zip_url in content_zip_urls:
+        download_file(content_zip_url, proj_temp_dir)
 
 
-def load_args_from_json(json_path):
-    """
-    Loads arguments from a JSON file.
+def unzip_content_zips(proj_temp_dir: str):
+    files = [f for f in os.listdir(proj_temp_dir) if os.path.isfile(os.path.join(proj_temp_dir, f))]
+    
+    for file in files:
+        file_path = os.path.join(proj_temp_dir, file)
+        unzip_release(file_path, proj_temp_dir)
+        os.remove(file_path)
 
-    Args:
-        json_path (str): Path to the JSON file containing argument key-value pairs.
 
-    Returns:
-        dict: Dictionary of arguments loaded from the JSON file.
-    """
-    try:
-        with open(json_path, 'r') as json_file:
-            args = json.load(json_file)
-            console.log(f"Loaded arguments from {json_path}: {args}")
-            return args
-    except Exception as e:
-        console.log(f"Error loading JSON file: {e}")
-        return {}
+def get_files_and_dirs_in_dir_tree(dir_tree: str) -> list:
+    all_files_and_dirs = []
+    root_dir = Path(dir_tree)
+
+    for item in root_dir.rglob('*'):
+        all_files_and_dirs.append(item)
+
+    return all_files_and_dirs
+
+
+def backup_dir_tree(
+        proj_dir: str,
+        backup_dir_tree: bool, 
+        backup_exclusions: list
+    ):
+    if backup_dir_tree:
+        backup_dir = f'{proj_dir}/backup'
+        if os.path.isdir(backup_dir):
+            new_backup_dir = create_recursive_backup(backup_dir)
+            shutil.move(backup_dir, new_backup_dir)
+        os.makedirs(backup_dir)
+        before_file_set = [os.path.normpath(exclusion) for exclusion in get_files_and_dirs_in_dir_tree(proj_dir)]
+        before_file_set_relative_paths = [os.path.relpath(before_file, proj_dir) for before_file in before_file_set]
+        if not backup_exclusions == None:
+            if len(backup_exclusions) > 0:
+                backup_exclusions = [os.path.normpath(exclusion) for exclusion in backup_exclusions]
+                dir_list = []
+                file_list = []
+                for backup_exclusion in backup_exclusions:
+                    path = f'{proj_dir}/{backup_exclusion}'
+                    if os.path.isfile(path):
+                        file_list.append(backup_exclusion)
+                    if os.path.isdir(path):
+                        dir_list.append(backup_exclusion)
+                temp_copy = before_file_set_relative_paths
+                for item in temp_copy:
+                    for entry in dir_list:
+                        if item.startswith(entry):
+                            before_file_set_relative_paths.remove(item)
+                    for entry in file_list:
+                        if item == entry:
+                            before_file_set_relative_paths.remove(item)
+        for partial_path in before_file_set_relative_paths:
+            full_before_path = f'{proj_dir}/{partial_path}'
+            full_after_path = f'{backup_dir}/{partial_path}'
+            if os.path.isfile(full_before_path):
+                file_dir = os.path.dirname(full_after_path)
+                os.makedirs(file_dir, exist_ok=True)
+                shutil.move(full_before_path, full_after_path)
+            if os.path.isdir(full_before_path):
+                os.makedirs(full_after_path, exist_ok=True)
+        all_dirs_and_files_in_project_dir = get_files_and_dirs_in_dir_tree(proj_dir)
+        for entry in all_dirs_and_files_in_project_dir:
+            if os.path.isdir(entry):
+                if not os.listdir(entry):
+                    os.removedirs(entry)
+
+
+def delete_dir_tree(
+        proj_dir: str, 
+        delete_dir_tree: bool, 
+        delete_exclusions: list
+    ):
+    if delete_dir_tree:
+        if delete_exclusions is None:
+            delete_exclusions = []
+        
+        delete_exclusions.append('backup')
+        
+        delete_exclusions = [os.path.normpath(exclusion) for exclusion in delete_exclusions]
+        
+        proj_dir_files = [os.path.normpath(path) for path in get_files_and_dirs_in_dir_tree(proj_dir)]
+        proj_dir_files_relative_paths = [os.path.relpath(path, proj_dir) for path in proj_dir_files]
+
+        files_to_delete = []
+        for file in proj_dir_files_relative_paths:
+            should_exclude = any(file.startswith(exclusion) for exclusion in delete_exclusions)
+            if not should_exclude:
+                files_to_delete.append(file)
+
+        for relative_path in files_to_delete:
+            file_path = os.path.join(proj_dir, relative_path)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+            elif os.path.isdir(file_path):
+                if not os.listdir(file_path):
+                    shutil.rmtree(file_path)
+
+
+def move_content(
+        proj_temp_dir: str, 
+        proj_dir: str,
+        overwrite_files: bool, 
+        overwrite_files_exclusions: list = []
+        ):
+        if not overwrite_files_exclusions:
+            overwrite_files_exclusions = []
+        overwrite_exclusions = [os.path.normpath(exclusion) for exclusion in overwrite_files_exclusions]
+        before_file_set = [os.path.normpath(exclusion) for exclusion in get_files_and_dirs_in_dir_tree(proj_temp_dir)]
+        before_file_set_relative_paths = [os.path.relpath(before_file, proj_temp_dir) for before_file in before_file_set]
+
+        for partial_path in before_file_set_relative_paths:
+            full_before_path = f'{proj_temp_dir}/{partial_path}'
+            full_after_path = f'{proj_dir}/{partial_path}'
+            if os.path.isfile(full_before_path):
+                file_dir = os.path.dirname(full_after_path)
+                os.makedirs(file_dir, exist_ok=True)
+                if overwrite_files:
+                    if os.path.isfile(full_after_path):
+                        if not partial_path in overwrite_exclusions:
+                            os.remove(full_after_path)
+                            os.makedirs(file_dir, exist_ok=True)
+                            shutil.move(full_before_path, full_after_path)
+                    else:
+                        shutil.move(full_before_path, full_after_path)
+                else:
+                   if os.path.isfile(full_after_path):
+                       continue
+                   else:
+                       shutil.move(full_before_path, full_after_path)
 
 
 def update_project(
     project_directory,
-    content_urls,
+    content_zip_urls,
     backup_directory_tree=True,
-    backup_exclusions=None,
-    delete_directory_tree=False,
-    delete_exclusions=None,
+    backup_exclusions=[],
+    delete_directory_tree=True,
+    delete_exclusions=[],
     overwrite_files=True,
-    overwrite_exclusions=None,
-    dry_run=False,
-    json_path=None
+    overwrite_exclusions=[]
 ):
-    
-    if json_path:
-        json_args = load_args_from_json(json_path)
-        project_directory = json_args.get("project_directory", project_directory)
-        content_urls = json_args.get("repo_release_urls", content_urls)
-        backup_directory_tree = json_args.get("backup_directory_tree", backup_directory_tree)
-        backup_exclusions = json_args.get("backup_exclusions", backup_exclusions)
-        delete_directory_tree = json_args.get("delete_directory_tree", delete_directory_tree)
-        delete_exclusions = json_args.get("delete_exclusions", delete_exclusions)
-        overwrite_files = json_args.get("overwrite_files", overwrite_files)
-        overwrite_exclusions = json_args.get("overwrite_exclusions", overwrite_exclusions)
-        dry_run = json_args.get("dry_run", dry_run)
+    if backup_directory_tree == None:
+        backup_directory_tree = True
 
+    if delete_directory_tree == None:
+        delete_directory_tree = False
+
+    if overwrite_files == None:
+        overwrite_files == True
+    
     """
     Updates a project by downloading and managing content as specified.
 
@@ -175,23 +217,19 @@ def update_project(
         delete_exclusions (list, optional): List of file names and/or directories, relative to the project directory, to exclude from deletion.
         overwrite_files (bool, optional): Whether to overwrite existing files when installing new content.
         overwrite_exclusions (list, optional): List of file names and/or directories, relative to the project directory, to exclude from being overwritten.
-        dry_run (bool, optional): If True, simulates the operations without performing any actions.
-        json_path (str, optional): Path to a JSON file containing arguments to run the program with.
 
     Returns:
         None
     """
-    console.log(f"Starting project update for directory: {project_directory}")
 
-    if dry_run:
-        console.log("Dry run enabled. No changes will be made.")
-    
-    if backup_directory_tree:
-        console.log("Backing up the project directory...")
-    
-    if delete_directory_tree:
-        console.log("Deleting contents of the project directory...")
-    
-    console.log(f"Downloading content from URLs: {content_urls}")
+    proj_dir = f'{SCRIPT_DIR}/{project_directory}'
+    proj_temp_dir = f'{proj_dir}/temp'
+    os.makedirs(proj_temp_dir, exist_ok=True)
 
-    console.log("Project update completed.")
+    clean_temp_dir(proj_temp_dir)
+    backup_dir_tree(proj_dir, backup_directory_tree, backup_exclusions)
+    delete_dir_tree(proj_dir, delete_directory_tree, delete_exclusions)
+    download_content(proj_temp_dir, content_zip_urls)
+    unzip_content_zips(proj_temp_dir)
+    move_content(proj_temp_dir, proj_dir, overwrite_files, overwrite_exclusions)
+    clean_temp_dir(proj_temp_dir)
