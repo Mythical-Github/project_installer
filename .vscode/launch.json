@@ -9,15 +9,16 @@
             "args": [
             "update_project", 
             "--project_directory", 
-            "unreal_auto_mod", 
+            "kf1_mods_installer", 
             "--content_zip_urls", 
-            "https://github.com/Mythical-Github/unreal_auto_mod/releases/download/v1.6.1/unreal_auto_mod.zip",
-            "https://github.com/Mythical-Github/py_project_dev_tools/releases/download/v1.0.0/py_project_dev_tools.zip"
+            "https://github.com/Mythical-Github/kf1_mods_installer/releases/latest/download/kf1_mods_installer.zip",
             // "--backup_directory_tree",
             // "True",
-            // "--backup_exclusions",
-            // "template/mod_packaging/persistent_files/ModName_P/UprojectName/Config/empty.ini",
-            // "test2",
+            "--backup_exclusions",
+            "project_updater.bat",
+            "project_updater",
+            "test",
+            "test.txt"
             // "--delete_directory_tree",
             // "True",
             // "--delete_exclusions",
