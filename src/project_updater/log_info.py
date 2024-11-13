@@ -1,27 +1,27 @@
-COLORS = {
+LOG_INFO = {
     "theme_colors": {
-        "Error": "\u001b[31;1m",
-        "Warning": "\u001b[33;1m",
-        "Arg:": "\u001b[38;2;255;105;180m",
-        "Args:": "\u001b[38;2;181;92;9m",
-        "Function:": "\u001b[38;2;0;255;0m",
-        "Routine Check:": "\u001b[38;2;138;43;226m",
-        "Script State:": "\u001b[38;2;0;206;209m",
-        "Cloning:": "\u001b[38;2;255;140;0m",
-        "Process:": "\u001b[38;2;255;20;147m",
-        "Window:": "\u001b[38;2;255;165;0m",
-        "Monitor:": "\u001b[38;2;173;216;230m",
-        "Progress Bar:": "\u001b[38;2;144;238;144m",
-        "Packed": "\u001b[38;2;218;112;214m",
-        "Command:": "\u001b[38;2;255;182;193m",
-        "FGlobal": "\u001b[38;2;32;178;170m",
-        "LogTemp:": "\u001b[38;2;255;228;181m",
-        "LogCook: Display:": "\u001b[38;2;123;104;238m",
-        "LogCookCommandlet: Display:": "\u001b[38;2;135;206;250m",
-        "LogInit": "\u001b[38;2;238;130;238m",
-        "Timer:": "\u001b[38;2;255;105;180m" 
+        "Error": (255, 0, 0),  # Red
+        "Warning": (255, 255, 0),  # Yellow
+        "Arg": (255, 105, 180),  # Hot Pink
+        "Args": (181, 92, 9),  # Brownish Orange
+        "Function:": (0, 255, 0),  # Green
+        "Starting": (138, 43, 226),  # Blue Violet
+        "Deleted": (0, 206, 209),  # Dark Turquoise
+        "Completed": (255, 140, 0),  # Dark Orange
+        "Successfully": (255, 20, 147),  # Deep Pink
+        "Failed": (255, 165, 0),  # Orange
+        "Directory": (173, 216, 230),  # Light Blue
+        "Progress Bar": (144, 238, 144),  # Light Green
+        "Creating": (218, 112, 214),  # Orchid
+        "Command": (255, 182, 193),  # Light Pink
+        "Removed": (32, 178, 170),  # Light Sea Green
+        "Unzipping": (255, 228, 181),  # Light Yellowish Tan
+        "Back": (123, 104, 238),  # Medium Slate Blue
+        "Overwritten": (135, 206, 250),  # Light Sky Blue
+        "Moved": (238, 130, 238),  # Violet
+        "Content:": (255, 105, 180)  # Hot Pink
     },
-    "default_color": "\u001b[94m",
-    "background_color": "\u001b[48;2;40;42;54m",
+    "default_color": (94, 94, 255),  # Light Blue
+    "background_color": (40, 42, 54),  # Dark Background (Dark Slate Gray)
     "log_name_prefix": "project_updater_"
 }
