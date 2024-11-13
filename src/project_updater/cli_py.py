@@ -1,6 +1,7 @@
 import argparse
 
-from project_updater import log_py
+from project_updater.log_py import log_message
+
 
 def cli_logic(cli_data):
     commands_module = cli_data['module']
@@ -37,13 +38,13 @@ def cli_logic(cli_data):
                     for arg_name in arg_help_pair.keys()
                 ]
 
-                print(f"Function: {function_name} was called with args: {function_args}")
+                log_message(f"Function: {function_name} was called with args: {function_args}")
                 function(*function_args)
             else:
-                print(f"Function {function_name} not found in {commands_module}.")
+                log_message(f"Function {function_name} not found in {commands_module}.")
         else:
-            print("Invalid command.")
+            log_message("Invalid command.")
             parser.print_help()
     else:
-        print("No command provided.")
+        log_message("No command provided.")
         parser.print_help()
