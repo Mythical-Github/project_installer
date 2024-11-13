@@ -6,7 +6,7 @@ set "project_directory=%CD%"
 set "content_zip_urls=https://github.com/Mythical-Github/kf1_mods_installer/releases/latest/download/kf1_mods_installer.zip"
 set "project_updater_exe=%CD%\project_updater.exe"
 
-set "command=update_project --project_directory "%project_directory%" --content_zip_urls "%content_zip_urls%" --backup_exclusions project_updater.exe project_updater.bat LICENSE"
+set "command=update_project --project_directory "%project_directory%" --content_zip_urls "%content_zip_urls%" --backup_exclusions project_updater.exe logs project_updater.bat LICENSE"
 
 "%project_updater_exe%" %command%
 
