@@ -42,8 +42,15 @@ def create_recursive_backup(original_dir: str) -> str:
 
 
 def download_file(url, dest_dir=SCRIPT_DIR):
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
+    
+    sys.stdout = open(os.devnull, 'w')
+    sys.stderr = sys.stdout
+
     local_filename = os.path.join(dest_dir, url.split('/')[-1])
     log_message(f"Starting download from {url} to {local_filename}")
+    
     try:
         with requests.get(url, stream=True) as r:
             r.raise_for_status()
@@ -53,6 +60,10 @@ def download_file(url, dest_dir=SCRIPT_DIR):
         log_message(f"Successfully downloaded {url} to {local_filename}")
     except Exception as e:
         log_message(f"Failed to download {url}. Error: {e}")
+    
+    sys.stdout = original_stdout
+    sys.stderr = original_stderr
+    
     return local_filename
 
 
